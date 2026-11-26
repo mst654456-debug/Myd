@@ -25,7 +25,7 @@ jobs:
           elif [ -f app/build.gradle.kts ]; then
             echo "PROJECT_DIR=." >> "$GITHUB_ENV"
           else
-            echo "لم يتم العثور على Samalut-Events-App-A4.zip أو ملفات مشروع Android" >&2
+            echo "لم يتم العثور على ملف المشروع" >&2
             exit 1
           fi
 
@@ -35,14 +35,17 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK packages
+      - name: Use preinstalled Android SDK
         shell: bash
         run: |
-          yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platform-tools" "build-tools;36.0.0" "platforms;android-36.1"
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          echo "$SDK/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$SDK/platform-tools" >> "$GITHUB_PATH"
+          echo "sdk.dir=$SDK" > "$GITHUB_WORKSPACE/local.properties"
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" --licenses >/dev/null 2>&1 || true
+          "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" --install "platform-tools" "build-tools;36.0.0" "platforms;android-36"
 
       - name: Build debug APK
         shell: bash
@@ -58,4 +61,5 @@ jobs:
           name: Samalut-Events-A4-debug-APK
           path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
           
